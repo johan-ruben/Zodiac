@@ -1,0 +1,10 @@
+{
+  "Name": "zodiac",
+  "Version": "1.0",
+  "Date": "Mon Jun 02 16:10:40 2025",
+  "Author": "Johan Gustafsson",
+  "Dependencies": {
+    "Name": "IDL",
+    "Version": ">=9.0"
+  }
+}
