@@ -1,2 +1,2 @@
 # Zodiac
-IDL routines tomographic reconstruction
+IDL routines for tomographic reconstruction
