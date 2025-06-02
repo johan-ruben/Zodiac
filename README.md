@@ -1,2 +1,2 @@
 # Zodiac
-IDL routines for tomographic reconstruction
+IDL routines for SPECT reconstruction
