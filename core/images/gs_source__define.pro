@@ -350,6 +350,20 @@ END
 
 ;===========================================================================================
 
+PRO gs_Source::SetNonNegative, unset = unset
+
+  compile_opt idl3
+  
+  if KeyWord_Set(unset) then begin
+    self.nonNegative = !false
+  endif else begin
+    *self.imgData >= 0
+    self.nonNegative = !true
+  endelse
+END
+
+;==================================================================
+
 PRO gs_Source__define
 
   compile_opt idl2

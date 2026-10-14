@@ -270,7 +270,7 @@ PRO jg_ScatterSource::ToFile, fileName, overwrite = overwrite, $
       WriteU, lun, enc
     endif else begin
       WriteU, lun, self.scatterSource[i]
-      scatterSoruce.Add, img
+      
       WriteU, lun, self.meanEnergy[i]        
     endelse
   endfor

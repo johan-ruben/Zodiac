@@ -1,9 +1,9 @@
 FUNCTION gs_OSEMreconstructor::Init, oPrjs, oSrcs, fwd, bck, startScatter, stopScatter, saver = saver, $
-  nSubs = nSubs, normInFile = normInFile, prior = prior, temporaryDirectory = temporaryDirectory
+  motion = motion, nSubs = nSubs, normInFile = normInFile, prior = prior, temporaryDirectory = temporaryDirectory
 
   compile_opt idl2
   
-  tmp = self.gs_Reconstructor::Init(oPrjs, oSrcs, fwd, bck, startScatter, stopScatter, saver = saver)
+  tmp = self.gs_Reconstructor::Init(oPrjs, oSrcs, fwd, bck, startScatter, stopScatter, saver = saver, motion = motion)
   if tmp ne 1 then Return, 0
   
   if N_Elements(nSubs) eq 0 then ns = 1 else ns = nSubs
@@ -24,7 +24,20 @@ FUNCTION gs_OSEMreconstructor::Init, oPrjs, oSrcs, fwd, bck, startScatter, stopS
   
   self.nSubs = ns
   self.subs = gs_Subseter(self.oPrjs.ToArray(), self.nSubs)
-  self.nrm = gs_OSEMNormalizer((self.subs)[*], self.oSrcs, self.bck, fromFile = normInFile, temporaryDirectory = temporaryDirectory)
+  
+  if N_Elements(motion) gt 0 then begin
+    
+    case 1B of
+      ~Obj_Valid(motion) || ~Obj_Isa(motion, 'gs_MotionContainer'): Message, 'Motion must be supplied as gs_MotionContainer.'
+      else:
+    endcase
+    
+    self.motion = motion
+    
+  endif
+  
+  if Obj_Valid(motion) then self.nrm = gs_GatedOSEMnormalizer((self.subs)[*], self.oSrcs, self.bck) else $
+    self.nrm = gs_OSEMNormalizer((self.subs)[*], self.oSrcs, self.bck, fromFile = normInFile, temporaryDirectory = temporaryDirectory)
   
   Return, 1
   
@@ -70,32 +83,51 @@ PRO gs_OSEMreconstructor::Run, nIters, subset = subset, verbose = verbose
       
       if N_Elements(subset) gt 0 && prjName ne subset then continue
       
-      oPrjEst = self.fwd.Fwd((self.oSrcs.Values()).ToArray(), oPrjSub, noScatter = noScatter, name = prjName + '_' + (self.oSrcs.Keys()).ToArray())
+      if jg_All(Obj_Isa(oPrjSub, 'gs_gatedstandardcameraprojections')) then oPrjEst = gs_ProjectForwardGates((self.oSrcs.Values()).ToArray(), oPrjSub, self.motion, self.fwd, noScatter = noScatter, name = prjName + '_' + (self.oSrcs.Keys()).ToArray()) else $
+        oPrjEst = self.fwd.Fwd((self.oSrcs.Values()).ToArray(), oPrjSub, noScatter = noScatter, name = prjName + '_' + (self.oSrcs.Keys()).ToArray())
       
       oRatio = ObjArr(N_Elements(oPrjSub))
       for iPrj = 0, N_Elements(oPrjSub) - 1 do oRatio[iPrj] = gs_SafeDivision(oPrjSub[iPrj], oPrjEst[iPrj], max = 1D6)
       
-      oBck = self.bck.Bck(oRatio, (self.oSrcs.Values()).ToArray())
+      bckArray = (self.oSrcs.Values()).ToArray()
+      for iSrc = 0, N_Elements(bckArray) - 1 do begin
+        if Obj_Isa(bckArray[iSrc], 'gs_BasisSource') then bckArray[iSrc] = bckArray[iSrc].Source()
+      endfor
+      
+      if  jg_All(Obj_Isa(oPrjSub, 'gs_gatedstandardcameraprojections')) then oBck = gs_BackprojectGates(oRatio, bckArray, self.bck, self.motion) else  oBck = self.bck.Bck(oRatio, bckArray)
+      
+      refSrcs = self.oSrcs.Values()
+      for iSrc = 0, N_Elements(refSrcs) - 1 do begin  
+        if Obj_Isa(refSrcs[iSrc], 'gs_BasisSource') then oBck = oBck.New(Rebin(oBck.imgData, refSrcs[iSrc].natDataDims, /sample), voxelSize = refSrcs[iSrc].natVoxelSize)
+      endfor
       
       iSrc = 0
       oNew = ObjArr(self.oSrcs.Count())
       foreach oSrc, self.oSrcs, srcName do begin
-        nrmMap = self.nrm.Get(prjName, srcName)
+        if Obj_Valid(self.motion) then nrmMap = self.nrm.Get(prjName, srcName, self.motion) else nrmMap = self.nrm.Get(prjName, srcName)
         if Obj_Valid(self.prior) then begin
           mx = Max(nrmMap)
           nrmMap *= (1. + self.prior.Apply(oSrc))
           nrmMap >= 0D
         endif
         oUpdate = gs_SafeDivision(oBck[iSrc], nrmMap, max = 1D6)       
-        oNew[iSrc] = oSrc*oUpdate
+        if Obj_Isa(oSrc, 'gs_BasisSource') then oNew[iSrc] = oSrc*oUpdate.imgData else $
+          oNew[iSrc] = oSrc*oUpdate
         iSrc++
       endforeach
       
       srcNames = self.oSrcs.Keys()
-      for iSrc = 0, self.oSrcs.Count() - 1 do self.oSrcs[srcNames[iSrc]] = oNew[iSrc]
+      for iSrc = 0, self.oSrcs.Count() - 1 do begin       
+        self.oSrcs[srcNames[iSrc]] = oNew[iSrc]
+      endfor
+            
       if KeyWord_Set(verbose) then Print, it, prjName, format = 'Finished %I %S'
       
     endforeach 
+    
+    if Obj_Valid(self.motion) then begin
+      gs_UpdateAllMotion, self.motion, (self.oSrcs.Values()).ToArray(), self.oPrjs
+    endif
     
     self.nIters++
     

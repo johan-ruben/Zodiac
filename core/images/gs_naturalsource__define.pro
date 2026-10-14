@@ -442,6 +442,18 @@ END
 
 ;======================================================================================================
 
+FUNCTION gs_NaturalSource::Source, nonNegative = nonNegative
+
+  compile_opt idl3
+
+  self.GetProperty, imgData = imgData, voxelSize = voxelSize, radionuclide = radionuclide, nonNegative = nn
+  if N_Elements(nonNegative) gt 0 then nn = nonNegative
+  Return, gs_Source(imgData, voxelSize = voxelSize, radionuclide = radionuclide, nonNegative = nonNegative)
+
+END
+
+;======================================================================================================
+
 PRO gs_NaturalSource__define
 
   compile_opt idl2

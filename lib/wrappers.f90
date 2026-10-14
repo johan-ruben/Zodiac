@@ -105,3 +105,19 @@ subroutine RDPprior_wrapper(argc, argv)
   
   
 end subroutine RDPprior_wrapper
+
+subroutine score_wrapper(argc, argv)
+
+  use iso_fortran_env, only : LL => int64
+    
+  implicit none
+  
+  !GCC$ ATTRIBUTES DLLEXPORT :: score_wrapper
+  
+  integer(kind = LL) :: argc
+  integer(kind = LL), dimension(*) :: argv
+  
+  call score_InternalWrapper(%val(argv(1)), %val(argv(2)), %val(argv(3)), %val(argv(4)), %val(argv(5)), %val(argv(6)), &
+    %val(argv(7)))
+  
+end subroutine score_wrapper

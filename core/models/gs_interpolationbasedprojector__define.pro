@@ -104,7 +104,7 @@ END
 
 ;=========================================================================================================================================
 
-FUNCTION gs_InterpolationBasedProjector::Fwd, oSrcs, oPrjs, noScatter = noScatter, name = name
+FUNCTION gs_InterpolationBasedProjector::Fwd, oSrcs, oPrjs, oMotion, noScatter = noScatter, name = name
 
   compile_opt idl2
   
@@ -126,7 +126,13 @@ FUNCTION gs_InterpolationBasedProjector::Fwd, oSrcs, oPrjs, noScatter = noScatte
   
   axialAdjustmentSave = List()
   
-  foreach oSrc, oSrcs, iSrc do begin
+  foreach oSrcTmp, oSrcs, iSrc do begin
+    
+    case 1B of
+      Obj_Isa(oSrcTmp, 'gs_BasisSource'): oSrc = oSrcTmp.Source()
+      else: oSrc = oSrcTmp
+    endcase
+        
     foreach oPrjAll, oPrjs, k do begin
       
       for b = 0, oPrjAll.nBeds - 1 do begin
@@ -144,6 +150,14 @@ FUNCTION gs_InterpolationBasedProjector::Fwd, oSrcs, oPrjs, noScatter = noScatte
             
             while (Total(axialAdjustmentSlices, /integer) + oPrjRaw.mtxSiz[1]) ne self.axialAdjustmentLength do begin
               if sgn*axialAdjustmentSlices[0] ge sgn*axialAdjustmentSlices[1] then axialAdjustmentSlices[0] -= sgn else axialAdjustmentSlices[1] -= sgn
+              if axialAdjustmentSlices[0] lt 0 then begin
+                axialAdjustmentSlices[0]++
+                axialAdjustmentSlices[1]--
+              endif
+              if axialAdjustmentSlices[1] lt 0 then begin
+                axialAdjustmentSlices[0]--
+                axialAdjustmentSlices[1]++
+              endif
             endwhile
                  
           endif
@@ -171,7 +185,7 @@ FUNCTION gs_InterpolationBasedProjector::Fwd, oSrcs, oPrjs, noScatter = noScatte
           
           for i = 0, oPrj.nProjections - 1 do begin
             oSrc1 = self.transform.Apply(oSrc, -oPrj.prjAngles[i], oPrj.cor[*, i], interpVoxSiz, interpDataDims, /noForce, axialOffset = -oPrj.axialOffset[i])
-            if Obj_Valid(self.attenuation) then oSrc1 = self.attenuation.Apply(oSrc1, energy, -oPrj.prjAngles[i], oPrj.cor[*, i], axialOffset = -oPrj.axialOffset[i])
+            if Obj_Valid(self.attenuation) then oSrc1 = self.attenuation.Apply(oSrc1, energy, -oPrj.prjAngles[i], oPrj.cor[*, i], oMotion = oMotion, axialOffset = -oPrj.axialOffset[i])
             oSrc1 = self.detector.Apply(oSrc1, oPrj, energy, oPrj.prjDist[i])
             prjData[*, *, i] += Total(oSrc1.imgData, 1)*pixelArea*self.transform.stepSize*oPrj.prjTime[i]*oSrc.radionuclide.yield[j]        
           endfor
@@ -211,7 +225,7 @@ FUNCTION gs_InterpolationBasedProjector::Fwd, oSrcs, oPrjs, noScatter = noScatte
           
         endif  
         
-        scaPrj = self.scatter.Apply(oSrc, oPrjTemplate)
+        scaPrj = self.scatter.Apply(oSrc, oPrjTemplate, oMotion)
         if N_Elements(name) gt iSrc then begin
           self.scatterCache[name[iSrc]] = scaPrj
         endif

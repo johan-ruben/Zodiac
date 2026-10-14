@@ -181,6 +181,16 @@ FUNCTION gs_Density::New, imgData, nonNegative = nonNegative, voxelSize = voxelS
 
 END
 
+;=====================================================
+
+FUNCTION gs_Density::Rescale, rescaler, regions
+
+  compile_opt idl3
+  
+  Return, self.gs_Image::Rescale(rescaler, regions, voxelSize = self.voxelSize)
+
+END
+
 ;=============================================================
 
 PRO gs_Density__define

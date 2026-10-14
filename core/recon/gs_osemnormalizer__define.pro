@@ -27,7 +27,12 @@ FUNCTION gs_OSEMNormalizer::Init, oPrjs, oSrcs, backProjector, fromFile = fromFi
     
     foreach oSrc, oSrcs, sourceName do begin
       
-      bck = backProjector.Bck(nrmPrjArray, oSrc)
+      if Obj_Isa(oSrc, 'gs_BasisSource') then begin
+        bck = backProjector.Bck(nrmPrjArray, oSrc.Source()) 
+        bck = bck.New(Rebin(bck.imgData, oSrc.natDataDims, /sample), voxelSize = oSrc.natVoxelSize)
+      endif else begin
+        bck = backProjector.Bck(nrmPrjArray, oSrc)
+      endelse
       
       if self.fromFile then begin
         
@@ -65,6 +70,10 @@ END
 FUNCTION gs_OsemNormalizer::Get, prjName, srcName
 
   compile_opt idl2
+  
+  if Obj_Valid(oMotion) then begin
+    
+  endif
   
   if self.fromFile then begin
     shmName = self.nrm[prjName, srcName]

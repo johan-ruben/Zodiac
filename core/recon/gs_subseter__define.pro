@@ -8,7 +8,7 @@ FUNCTION gs_Subseter::Init, oPrjs, nSubs
   foreach oPrj, oPrjs do begin
     
     if Obj_Isa(oPrj, 'gs_ProjectionContainer') then begin
-      iSubs = bbh_Subsets(oPrj.oPrjs[0].nProjections, oprj.oPrjs[0].nProjections/nSubs)
+      iSubs = gs_Subsets(oPrj.oPrjs[0].nProjections, oprj.oPrjs[0].nProjections/nSubs)
       
       for j = 0, nSubs - 1 do begin
         oP = oPrj.oPrjs
@@ -19,11 +19,15 @@ FUNCTION gs_Subseter::Init, oPrjs, nSubs
     
     endif else begin 
        
-      iSubs = bbh_Subsets(oPrj.nProjections, oprj.nProjections/nSubs)
+      iSubs = gs_Subsets(oPrj.nProjections, oprj.nProjections/nSubs)
         
       for j = 0, nSubs - 1 do begin
-        self.subs['s' + (j + 1).ToString()].Add, oPrj.New(oPrj.imgData[*, *, iSubs[*, j]], prjAngles = oPrj.prjAngles[iSubs[*, j]], cor = oPrj.cor[*, iSubs[*, j]], $
-          prjDist = oPrj.prjDist[iSubs[*, j]], axialOffset = oPrj.axialOffset[iSubs[*, j]]) 
+        
+        if Obj_Isa(oPrj, 'gs_GatedStandardCameraProjections') then $
+          self.subs['s' + (j + 1).ToString()].Add, oPrj.New(oPrj.imgData[*, *, iSubs[*, j]], prjAngles = oPrj.prjAngles[iSubs[*, j]], cor = oPrj.cor[*, iSubs[*, j]], $
+            prjDist = oPrj.prjDist[iSubs[*, j]], axialOffset = oPrj.axialOffset[iSubs[*, j]], gateTags = oPrj.gateTags[iSubs[*, j]]) else $        
+          self.subs['s' + (j + 1).ToString()].Add, oPrj.New(oPrj.imgData[*, *, iSubs[*, j]], prjAngles = oPrj.prjAngles[iSubs[*, j]], cor = oPrj.cor[*, iSubs[*, j]], $
+            prjDist = oPrj.prjDist[iSubs[*, j]], axialOffset = oPrj.axialOffset[iSubs[*, j]]) 
       endfor
       
     endelse

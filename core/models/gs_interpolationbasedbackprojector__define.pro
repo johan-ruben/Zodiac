@@ -65,7 +65,7 @@ END
 
 ;============================================================================
 
-FUNCTION gs_InterpolationBasedBackprojector::Bck, oPrjs, oSrcs
+FUNCTION gs_InterpolationBasedBackprojector::Bck, oPrjs, oSrcs, oMotion, modifier = modifier, nonNegative = nonNegative
 
   compile_opt idl2
   
@@ -78,11 +78,23 @@ FUNCTION gs_InterpolationBasedBackprojector::Bck, oPrjs, oSrcs
   oSrcOut = ObjArr(N_Elements(oSrcs))
 
   for i = 0, N_Elements(oSrcOut) - 1 do begin
-    oSrcOut[i] = oSrcs[i].New(DblArr(oSrcs[i].dataDims), /noForce)
+    
+    if Obj_Isa(oSrcs[i], 'gs_BasisSource') then begin
+      outTmp = oSrcs[i].Source()
+      oSrcOut[i] = outTmp.New(DblArr(outTmp.dataDims), nonNegative = nonNegative)
+    endif else begin  
+      oSrcOut[i] = oSrcs[i].New(DblArr(oSrcs[i].dataDims), /noForce, nonNegative = nonNegative)
+    endelse
+    
   endfor
 
-  foreach oSrc, oSrcs, k do begin
+  foreach oSrcTmp, oSrcs, k do begin
     
+    case 1B of
+      Obj_Isa(oSrcTmp, 'gs_BasisSource'): oSrc = oSrcTmp.Source()
+      else: oSrc = oSrcTmp
+    endcase
+        
     foreach oPrjAll, oPrjs do begin
       
       for b = 0, oPrjAll.nBeds - 1 do begin
@@ -100,6 +112,14 @@ FUNCTION gs_InterpolationBasedBackprojector::Bck, oPrjs, oSrcs
   
             while (Total(axialAdjustmentSlices, /integer) + oPrjRaw.mtxSiz[1]) ne self.axialAdjustmentLength do begin
               if sgn*axialAdjustmentSlices[0] ge sgn*axialAdjustmentSlices[1] then axialAdjustmentSlices[0] -= sgn else axialAdjustmentSlices[1] -= sgn
+              if axialAdjustmentSlices[0] lt 0 then begin
+                axialAdjustmentSlices[0]++
+                axialAdjustmentSlices[1]--
+              endif
+              if axialAdjustmentSlices[1] lt 0 then begin
+                axialAdjustmentSlices[0]--
+                axialAdjustmentSlices[1]++
+              endif
             endwhile
   
           endif
@@ -128,10 +148,15 @@ FUNCTION gs_InterpolationBasedBackprojector::Bck, oPrjs, oSrcs
           for i = 0, oPrj.nProjections - 1 do begin
             
             oSrc1 = oSrc.New(Rebin(Reform(oPrj.imgData[*, *, i], 1, oPrj.mtxSiz[0], oPrj.mtxSiz[1]), oSrc.dataDims[0], oPrj.mtxSiz[0], oPrj.mtxSiz[1]), $
-              voxelSize = [oSrc.voxelSize[1], oPrj.pixSiz], /noForce)
+              voxelSize = [oSrc.voxelSize[1], oPrj.pixSiz], /noForce, nonNegative = nonNegative)
+            
             
             oSrc1 = self.detector.Apply(oSrc1, oPrj, energy, oPrj.prjDist[i], /back)
-            if Obj_Valid(self.attenuation) then oSrc1 = self.attenuation.Apply(oSrc1, energy, oPrj.prjAngles[i], oPrj.cor[*, i], axialOffset = oPrj.axialOffset[i])
+            if Obj_Valid(modifier) then oSrc1 = modifier.ModifyBack(oSrc1, energy, oPrj.prjAngles[i], self.attenuation)
+            if Obj_Valid(self.attenuation) then begin
+              
+              oSrc1 = self.attenuation.Apply(oSrc1, energy, oPrj.prjAngles[i], oPrj.cor[*, i], oMotion = oMotion, axialOffset = oPrj.axialOffset[i])
+            endif
             
             oSrc1 = self.transform.Apply(oSrc1, oPrj.prjAngles[i], oPrj.cor[*, i], interpVoxSiz, interpDataDims, axialOffset = oPrj.axialOffset[i])*oPrj.prjTime[i]*oSrc.radionuclide.yield[j]*eSens
             srcData += oSrc1.imgData          
@@ -144,8 +169,9 @@ FUNCTION gs_InterpolationBasedBackprojector::Bck, oPrjs, oSrcs
       endfor
     endforeach
     
-    if Obj_Isa(oSrc, 'gs_NaturalSource') then oSrcOut[k] = oSrcOut[k].New(oSrcOut[k].imgData, noForce = 0)
-       
+    if Obj_Isa(oSrc, 'gs_NaturalSource') then oSrcOut[k] = oSrcOut[k].New(oSrcOut[k].imgData, noForce = 0, nonNegative = nonNegative)
+    if Obj_Isa(oSrcTmp, 'gs_BasisSource') then oSrcOut[k] = oSrcTmp.New(oSrcOut[k].imgData, nonNegative = nonNegative) 
+  
   endforeach
 
   if N_Elements(oSrcOut) eq 1 then Return, oSrcOut[0] else Return, oSrcOut

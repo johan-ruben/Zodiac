@@ -25,17 +25,17 @@ END
 
 ;=======================================================================
 
-FUNCTION gs_ESSE::Apply, oSrc, oPrjRaw
+FUNCTION gs_ESSE::Apply, oSrc, oPrjRaw, oMotion
 
   compile_opt idl2
   
   prjOutAll = List()
-  
+   
   for b = 0, oPrjRaw.nBeds - 1 do begin
     
     if Obj_Isa(oPrjRaw, 'gs_ProjectionContainer') then oPrj = oPrjRaw.oPrjs[b] else oPrj = oPrjRaw
     
-    oSSen = self.scatterSource.GetScatterSource(oSrc, oPrj)
+    oSSen = self.scatterSource.GetScatterSource(oSrc, oPrj, oMotion)
     isEqual = Lambda(eWin1, eWin2: eWin1 eq eWin2)
     oSS = OSSen[0]
     oEn = oSSen[1]

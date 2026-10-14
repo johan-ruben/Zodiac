@@ -22,7 +22,7 @@ END
 
 ;=========================================================================
 
-FUNCTION gs_FixedScatterEstimate::Apply, oSrc, oPrj
+FUNCTION gs_FixedScatterEstimate::Apply, oSrc, oPrj, oMotion
 
   compile_opt idl3
   

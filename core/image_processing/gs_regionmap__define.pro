@@ -42,13 +42,14 @@ END
 
 ;======================================================================================================================================
 
-PRO gs_RegionMap::GetProperty, dataDims = dataDims, names = names, regions = regions
+PRO gs_RegionMap::GetProperty, dataDims = dataDims, names = names, regions = regions, labels = labels
 
   compile_opt idl2
   
   if Arg_Present(dataDims) then dataDims = self.dataDims.ToArray()
   if Arg_Present(names) then names = (self.keys.Keys()).ToArray()
   if Arg_Present(regions) then regions = *self.regions
+  if Arg_Present(labels) then labels = (self.keys.Values()).ToArray()
   
 END
 
@@ -151,8 +152,8 @@ FUNCTION gs_RegionMap::FromFile, fileName
     ReadU, lun, regionsCompress
     regions = Zlib_Uncompress(regionsCompress, type = 2, dimensions = dataDims, /gzip_header)
   endif else begin
-    img = IntArr(dataDims)
-    ReadU, lun, img
+    regions = IntArr(dataDims)
+    ReadU, lun, regions
   endelse
   
   if Isa(fileName, /string) then Free_Lun, lun
@@ -181,6 +182,35 @@ PRO gs_RegionMap::Add, ii, name, remove = remove
   if N_Elements(name) gt 0 then nme = name else nme = 'region ' + iNr.ToString()
   (*self.regions)[ii] = iNr
   self.keys[name] = iNr
+
+END
+
+;======================================================================================================================================
+
+PRO gs_RegionMap::Merge, nme1, nme2, newName
+
+  compile_opt idl3
+  
+  case 1 of
+    ~Isa(nme1, /scalar, /string) || ~Isa(nme2, /scalar, /string): Message, 'Region names must be scalar strings.'
+    ~self.HasRegion(nme1): Message, 'Region does nost exist: ' + nme1 
+    ~self.HasRegion(nme2): Message, 'Region does nost exist: ' + nme2
+    (N_Elements(newName) gt 0) && ~Isa(newName, /scalar, /string): Message, 'Region names must be a scalar string.'
+    else:
+  endcase
+  
+  if N_Elements(newName) eq 0 then begin
+    ii = self.Indices(nme1)
+    iNr = self.keys[nme2]
+    (*self.regions)[ii] = iNr
+    self.keys.Remove, nme1
+  endif else begin
+    ii = [self.Indices(nme1), self.Indices(nme2)]
+    iNr = self.keys[nme2]
+    (*self.regions)[ii] = iNr
+    self.keys.Remove, [nme1, nme2]
+    self.keys[newName] = iNr
+  endelse
 
 END
 

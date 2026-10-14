@@ -161,7 +161,7 @@ FUNCTION gs_Projections::_OverloadMinusUnary, _extra = extra
 
   compile_opt idl2
   
-  Return, self.gs_Image::_OverloadMinusUnary(pixsiz = self.pixSiz, energyWindow = energyWindow, _extra = extra)
+  Return, self.gs_Image::_OverloadMinusUnary(pixsiz = self.pixSiz, energyWindow = self.energyWindow, _extra = extra)
 
 END
 

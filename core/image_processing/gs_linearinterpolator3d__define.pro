@@ -30,7 +30,7 @@ FUNCTION gs_LinearInterpolator3D::Apply, oImg, x, y, z, voxelSize = voxelSize, n
   gfortran = !true
   
   if gfortran then begin
-    shared = Routine_Dir() + 'ggray.dll'
+    shared = Routine_Dir() + (StrCmp(!version.os_family, 'Windows', /fold_case) ? 'ggray.dll' : 'ggray.so')
     entry = 'linear3d_wrapper_' 
     
     if ~File_Test(shared) then shared = jg_AddSlash((shared.Split(Path_Sep() eq '\' ? '\\' : '/'))[0:-4].Join(Path_Sep()) + Path_Sep() + 'lib') + 'ggray.dll'

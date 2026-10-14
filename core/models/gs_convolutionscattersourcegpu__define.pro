@@ -98,7 +98,7 @@ END
 
 ;============================================================
 
-FUNCTION gs_ConvolutionScatterSourceGPU::GetScatterSource, oSrc, oPrj
+FUNCTION gs_ConvolutionScatterSourceGPU::GetScatterSource, oSrc, oPrj, oMotion
 
   compile_opt idl3
 
@@ -106,7 +106,7 @@ FUNCTION gs_ConvolutionScatterSourceGPU::GetScatterSource, oSrc, oPrj
   enList = List()
 
   iKernels = []
-
+  
   for k = 0, self.fkernels.Count() - 1 do begin
 
     if (self.radionuclide[k] eq oSrc.radionuclide) then iKernels = [iKernels, k]
@@ -154,7 +154,8 @@ FUNCTION gs_ConvolutionScatterSourceGPU::GetScatterSource, oSrc, oPrj
       
       if count gt 0 then en[ii] <= self.maxEnergy[iKernels[i]]
       
-      oAttR = self.transformer.Apply(self.densDistribution, -oPrj.prjAngles[p], oPrj.cor[*, p], oSrcR.voxelSize, oSrcR.dataDims, axialOffset = -oPrj.axialOffset[p])
+      oDD = Obj_Valid(oMotion) ? oMotion.Apply(self.densDistribution) : self.densDistribution
+      oAttR = self.transformer.Apply(oDD, -oPrj.prjAngles[p], oPrj.cor[*, p], oSrcR.voxelSize, oSrcR.dataDims, axialOffset = -oPrj.axialOffset[p])
 
       scl = oAttR.imgData/self.referenceDensity
       SS *= scl

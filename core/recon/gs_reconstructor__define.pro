@@ -1,4 +1,4 @@
-FUNCTION gs_Reconstructor::Init, oPrjs, oSrcs, fwd, bck, startScatter, stopScatter, saver = saver
+FUNCTION gs_Reconstructor::Init, oPrjs, oSrcs, fwd, bck, startScatter, stopScatter, saver = saver, motion = motion
 
   compile_opt idl2
   
@@ -21,7 +21,18 @@ FUNCTION gs_Reconstructor::Init, oPrjs, oSrcs, fwd, bck, startScatter, stopScatt
   endcase
   
   if N_Elements(saver) gt 0 then self.saver = List(saver, /extract) else self.saver = List()
-
+  
+  if N_Elements(motion) gt 0 then begin
+    
+    case 1B of
+      ~Obj_Valid(motion) || ~Obj_Isa(motion, 'gs_MotionContainer'): Message, 'Motion must be gs_MotionContainer.'
+      else:
+    endcase
+    
+    self.motion = motion
+    
+  endif
+  
   self.oPrjs = List(oPrjs, /extract)
   self.oSrcs = OrderedHash('source' + StrTrim(SindGen(N_elements(oSrcs), start = 1), 2), oSrcs)
   self.fwd = fwd
@@ -52,13 +63,15 @@ END
 
 ;=================================================================================
 
-PRO gs_Reconstructor::GetProperty, oSrcs = oSrcs, nIters = nIters, temporaryDirectory = temporaryDirectory, isAsleep = isAsleep
+PRO gs_Reconstructor::GetProperty, oSrcs = oSrcs, nIters = nIters, temporaryDirectory = temporaryDirectory, isAsleep = isAsleep, motion = motion
 
   compile_opt idl2
   
   if Arg_Present(oSrcs) then oSrcs = (self.oSrcs)[*]
   if Arg_Present(nIters) then nIters = self.nIters
   if Arg_Present(isAsleep) then isAsleep = self.isAsleep
+  if Arg_Present(motion) then motion = self.motion
+
 END
 
 ;=================================================================================
@@ -99,6 +112,6 @@ PRO gs_Reconstructor__define
   compile_opt idl2
   
   dum = {gs_Reconstructor, oSrcs: Obj_New(), oPrjs: Obj_New(), fwd: Obj_New(), bck: Obj_New(), nIters: 0L, startScatter: Obj_New(), stopScatter: Obj_New(), $
-    saver: Obj_New(), isAsleep: !false, inherits IDL_Object}
+    saver: Obj_New(), isAsleep: !false, motion: Obj_New(), inherits IDL_Object}
 
 END

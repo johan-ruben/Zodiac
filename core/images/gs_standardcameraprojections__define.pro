@@ -38,7 +38,7 @@ FUNCTION gs_StandardCameraProjections::Init, imgData, nonNegative = nonNegative,
   self.prjTime = List(Isa(prjTime, /scalar) ? Replicate(Double(prjTime), self.nProjections) : Double(prjTime), /extract)
   
   case 1B of
-    ~Isa(prjAngles, /number) || Isa(prjTime, /complex): Message, 'Projection angles must be a real number.'
+    ~Isa(prjAngles, /number) || Isa(prjAngles, /complex): Message, 'Projection angles must be a real number.'
     (N_Elements(prjAngles) ne self.nProjections): Message, 'Number of projection angles must equal number of projections.'
     else:
   endcase
@@ -107,7 +107,7 @@ END
 
 ;===================================================================================================================================
 
-FUNCTION gs_StandardCameraProjections::_OverloadPlus, left, right
+FUNCTION gs_StandardCameraProjections::_OverloadPlus, left, right, _extra = extra
 
   compile_opt idl2
   
@@ -147,13 +147,13 @@ FUNCTION gs_StandardCameraProjections::_OverloadPlus, left, right
   endif else Message, 'Addition not defined for operands.'
   
   Return, self.gs_Projections::_OverloadPlus(left, right, prjAngles = prjAngles, cor = cor, prjDist = prjDist, prjTime = prjTime, nHeads = nHead, $
-    axialOffset = axialOffset)
+    axialOffset = axialOffset, _extra = extra)
 
 END
 
 ;===================================================================================================================================
 
-FUNCTION gs_StandardCameraProjections::_OverloadMinus, left, right
+FUNCTION gs_StandardCameraProjections::_OverloadMinus, left, right, _extra = extra
 
   compile_opt idl2
 
@@ -192,23 +192,25 @@ FUNCTION gs_StandardCameraProjections::_OverloadMinus, left, right
     axialOffset = right.axialOffset
   endif else Message, 'Subtraction not defined for operands'
 
-  Return, self.gs_Projections::_OverloadMinus(left, right, prjAngles = prjAngles, cor = cor, prjDist = prjDist, prjTime = prjTime, nHeads = nHead, axialPosition = axialPosition)
+  Return, self.gs_Projections::_OverloadMinus(left, right, prjAngles = prjAngles, cor = cor, prjDist = prjDist, prjTime = prjTime, $
+    nHeads = nHead, axialPosition = axialPosition, _extra = extra)
 
 END
 
 ;===================================================================================================================================
 
-FUNCTION gs_StandardCameraProjections::_OverloadMinusUnary
+FUNCTION gs_StandardCameraProjections::_OverloadMinusUnary, _extra = extra
 
   compile_opt idl2
   
-  Return, self.gs_Projections::_OverloadMinusUnary(prjAngles = prjAngles, cor = cor, prjDist = prjDist, prjTime = prjTime, nHeads = nHeads)
+  Return, self.gs_Projections::_OverloadMinusUnary(prjAngles = self.prjAngles.ToArray(), cor = self.cor.ToArray(/transpose), $
+    prjDist = self.prjDist.ToArray(), prjTime = self.prjTime.ToArray(), nHeads = self.nHeads, _extra = extra)
 
 END
 
 ;===================================================================================================================================
 
-FUNCTION gs_StandardCameraProjections::_OverloadAsterisk, left, right
+FUNCTION gs_StandardCameraProjections::_OverloadAsterisk, left, right, _extra = extra
 
   compile_opt idl2
 
@@ -247,13 +249,14 @@ FUNCTION gs_StandardCameraProjections::_OverloadAsterisk, left, right
     axialOffset = right.axialOffset
   endif else Message, 'Multiplication not defined for operands'
 
-  Return, self.gs_Projections::_OverloadAsterisk(left, right, prjAngles = prjAngles, cor = cor, prjDist = prjDist, prjTime = prjTime, nHeads = nHead, axialOffset = axialOffset)
+  Return, self.gs_Projections::_OverloadAsterisk(left, right, prjAngles = prjAngles, cor = cor, prjDist = prjDist, $
+    prjTime = prjTime, nHeads = nHead, axialOffset = axialOffset, _extra = extra)
 
 END
 
 ;===================================================================================================================================
 
-FUNCTION gs_StandardCameraProjections::_OverloadSlash, left, right
+FUNCTION gs_StandardCameraProjections::_OverloadSlash, left, right, _extra = extra
 
   compile_opt idl2
 
@@ -292,25 +295,26 @@ FUNCTION gs_StandardCameraProjections::_OverloadSlash, left, right
     axialOffset = right.axialOffset
   endif else Message, 'Division not defined for operands'
 
-  Return, self.gs_Projections::_OverloadSlash(left, right, prjAngles = prjAngles, cor = cor, prjDist = prjDist, prjTime = prjTime, nHeads = nHead, axialOffset = axialOffset)
+  Return, self.gs_Projections::_OverloadSlash(left, right, prjAngles = prjAngles, cor = cor, prjDist = prjDist, $
+    prjTime = prjTime, nHeads = nHead, axialOffset = axialOffset, _extra = extra)
 
 END
 
 ;===================================================================================================================================
 
-FUNCTION gs_StandardCameraProjections::_OverloadPound, left, right
+FUNCTION gs_StandardCameraProjections::_OverloadPound, left, right, _extra = extra
 
   compile_opt idl2
   
   Return, self.gs_Projections::_OverloadPound(left, right, prjAngles = self.prjAngles.ToArray(), cor = Reform(self.cor.ToArray(), 2, self.nProjections),$
-     prjDist = self.prjDist.ToArray(), prjTime = self.prjtime.ToArray(), nHeads = self.nHeads, axialOffset = self.axialOffset.ToArray())
+     prjDist = self.prjDist.ToArray(), prjTime = self.prjtime.ToArray(), nHeads = self.nHeads, axialOffset = self.axialOffset.ToArray(), _extra = extra)
 
 END
 
 ;===================================================================================================================================
 
 FUNCTION gs_StandardCameraProjections::New, imgData, nonNegative = nonNegative, pixSiz = pixSiz, energyWindow = energyWindow, prjTime = prjTime, $
-  prjAngles = prjAngles, cor = cor, prjDist = prjDist, axialOffset = axialOffset
+  prjAngles = prjAngles, cor = cor, prjDist = prjDist, axialOffset = axialOffset, _extra = extra
 
   compile_opt idl2
   
@@ -321,7 +325,7 @@ FUNCTION gs_StandardCameraProjections::New, imgData, nonNegative = nonNegative, 
   if N_Elements(axialOffset) gt 0 then ao = axialOffset else ao = self.axialOffset.ToArray()
   
   Return, self.gs_Projections::New(imgData, nonNegative = nonNegative, pixSiz = pixSiz, energyWindow = energyWindow, prjTime = pt, $
-    prjAngles = pa, cor = c, prjDist = pd, axialOffset = ao)
+    prjAngles = pa, cor = c, prjDist = pd, axialOffset = ao, _extra = extra)
   
 END
 

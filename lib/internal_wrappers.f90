@@ -121,6 +121,19 @@ subroutine RDPprior_internalWrapper(isiz, jsiz, ksiz, src, dUdf, gamma, wtsSiz, 
 
 end subroutine RDPprior_internalWrapper
 
+subroutine Score_InternalWrapper(img, en, nImg, iiArray, energy, weights, nii)
+
+  use iso_fortran_env, only : dp => real64, L => int32
+  use vsmc, only: Score
+  
+  real(kind = dp), dimension(nImg), intent(inout) :: img, en
+  integer(kind = L), dimension(nii), intent(in) :: iiArray
+  real(kind = dp), dimension(nii), intent(in) :: energy, weights 
+
+  call Score(img, en, iiArray, energy, weights)
+
+end subroutine Score_InternalWrapper
+
 
 
 

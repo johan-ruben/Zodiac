@@ -81,7 +81,7 @@ END
 
 ;============================================================
 
-FUNCTION gs_ConvolutionScatterSource::GetScatterSource, oSrc, oPrj
+FUNCTION gs_ConvolutionScatterSource::GetScatterSource, oSrc, oPrj, oMotion
 
   compile_opt idl3
   
@@ -118,8 +118,9 @@ FUNCTION gs_ConvolutionScatterSource::GetScatterSource, oSrc, oPrj
       ii = Where(SS ne 0., count, /null, complement = jj, ncomplement = cCount)
       if count gt 0 then en[ii] = en[ii]/abs(SS[ii])
       if cCount gt 0 then en[jj] = !values.d_nan
-        
-      oAttR = self.transformer.Apply(self.densDistribution, -oPrj.prjAngles[p], oPrj.cor[*, p], oSrcR.voxelSize, oSrcR.dataDims, axialOffset = -oPrj.axialOffset[p])
+      
+      oDD = Obj_Valid(oMotion) ? oMotion.Apply(self.densDistribution) : self.densDistribution  
+      oAttR = self.transformer.Apply(oDD, -oPrj.prjAngles[p], oPrj.cor[*, p], oSrcR.voxelSize, oSrcR.dataDims, axialOffset = -oPrj.axialOffset[p])
         
       scl = oAttR.imgData/self.referenceDensity
       SS *= scl
